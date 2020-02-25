@@ -84,9 +84,9 @@ class Emitter:
             except:
                 print("Erro no Emissor")
 
-def main2():
+def mainEmitter():
     #erro
     emitter = Emitter()
     emitter.run()
 
-main2()
+mainEmitter()

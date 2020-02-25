@@ -96,10 +96,10 @@ class Receiver:
         print("\n\nConexão fechada\n\n")
         return
 
-def main():
+def mainReceiver():
     #erro
     receiver = Receiver()
     receiver.run()
     return
 
-main()
+mainReceiver()
