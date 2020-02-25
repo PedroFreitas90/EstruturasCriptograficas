@@ -9,9 +9,6 @@ import os
 
 max_msg_size = 9999
 
-HOST = ''     # Endereco IP do Servidor
-PORT = 5000  # Porta que o Servidor esta
-
 #Key Derivation Function
 def passKDF(salt):
     kdf = PBKDF2HMAC(
@@ -26,22 +23,32 @@ def askPassword():
         password = getpass.getpass() #Pede a password como input
         return str.encode(password)
 
+# message authentication code
+def mac(key,source, tag=None):
+    h = hmac.HMAC(key,hashes.SHA256(),default_backend())
+    h.update(source)
+    if tag == None:
+        return h.finalize()
+    h.verify(tag)
+
+#função hash
+def Hash(s):
+    digest = hashes.Hash(hashes.SHA256(),backend=default_backend())
+    digest.update(s)
+    return digest.finalize()
+
 
 class Receiver:
     """ Classe que implementa a funcionalidade de um Receiver. """
     def __init__(self):
         """ Construtor da classe. """
         self.socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.orig = (HOST, PORT) 
+        self.orig = ('', 5000) 
     
     def startSocket(self):
         self.socket.bind(self.orig)
         self.socket.listen(1)
-        print("\n\n Servidor à escuta na porta: " + str(PORT) + "\n\n")
-    
-    def askPassword(self):
-        password = getpass.getpass() #Pede a password como input
-        return str.encode(password)
+        print("\n\n Servidor à escuta na porta: 5000 \n\n")
     
     def decription(self,key,iv,tag,msg):
         cipher = Cipher(algorithms.AES(key),modes.GCM(iv,tag),default_backend()) 
@@ -65,16 +72,19 @@ class Receiver:
                     break
                 else:
                     salt = msg[0:16]
-                    iv = msg[16:32]
-                    tag = msg[32:48]
-                    ciphertext = msg[48:]
+                    tagK = msg[16:48]
+                    iv = msg[48:64]
+                    tag = msg[64:80]
+                    ciphertext = msg[80:]
                     
                     key = passKDF(salt).derive(password)
                     
                     try:
                         plaintext = self.decription(key,iv,tag,ciphertext)
-                        print(plaintext.decode())
-                        
+                        if (tagK == mac(Hash(key),plaintext)):
+                            print(plaintext.decode())
+                        else:
+                            print('Mensagem comprometida. Chave não autenticada')   
                     except:
                         print('Mensagem comprometida\n')
                         self.breakCon(con)          
@@ -87,6 +97,7 @@ class Receiver:
         return
 
 def main():
+    #erro
     receiver = Receiver()
     receiver.run()
     return
